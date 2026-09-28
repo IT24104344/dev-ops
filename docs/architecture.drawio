@@ -1,0 +1,51 @@
+<mxfile host="app.diagrams.net" type="device">
+  <diagram name="NodeGoat Architecture" id="nodegoat-arch">
+    <mxGraphModel dx="1050" dy="640" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="900" pageHeight="580" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+
+        <mxCell id="title" value="OWASP NodeGoat (RetireEasy) — DevSecOps Architecture" style="text;html=1;align=center;fontStyle=1;fontSize=18;fontColor=#1A2B4A;" vertex="1" parent="1">
+          <mxGeometry x="120" y="16" width="660" height="30" as="geometry" />
+        </mxCell>
+
+        <mxCell id="tb_net" value="Trust boundary: Public Internet" style="rounded=1;dashed=1;dashPattern=6 4;strokeColor=#C0392B;fillColor=#FDF0F0;verticalAlign=top;fontColor=#C0392B;fontStyle=1;fontSize=13;arcSize=6;" vertex="1" parent="1">
+          <mxGeometry x="30" y="60" width="200" height="450" as="geometry" />
+        </mxCell>
+
+        <mxCell id="user" value="End User&#10;Browser&#10;(HTTP :4000)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#EAF2FB;strokeColor=#2C6CB0;fontColor=#1A2B4A;fontStyle=1;fontSize=13;" vertex="1" parent="1">
+          <mxGeometry x="70" y="230" width="120" height="100" as="geometry" />
+        </mxCell>
+
+        <mxCell id="tb_docker" value="Trust boundary: Docker Compose internal network" style="rounded=1;dashed=1;dashPattern=6 4;strokeColor=#2C6CB0;fillColor=#EEF6FF;verticalAlign=top;fontColor=#2C6CB0;fontStyle=1;fontSize=13;arcSize=4;" vertex="1" parent="1">
+          <mxGeometry x="270" y="60" width="590" height="450" as="geometry" />
+        </mxCell>
+
+        <mxCell id="web" value="web — Component 1&#10;&#10;Node.js 12 / Express&#10;App logic + views (Swig)&#10;Sessions / auth (express-session)&#10;&#10;Container: nodegoat-web&#10;Exposes :4000" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E8F5E9;strokeColor=#2E7D32;fontColor=#1B5E20;fontSize=12;align=center;spacingTop=6;" vertex="1" parent="1">
+          <mxGeometry x="320" y="150" width="240" height="160" as="geometry" />
+        </mxCell>
+
+        <mxCell id="mongo" value="mongo — Component 2&#10;&#10;MongoDB 4.4&#10;User + allocation data&#10;&#10;Container: nodegoat-mongo&#10;Port 27017 (internal only)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFF4E5;strokeColor=#E67E22;fontColor=#A04000;fontSize=12;align=center;spacingTop=6;" vertex="1" parent="1">
+          <mxGeometry x="620" y="150" width="200" height="160" as="geometry" />
+        </mxCell>
+
+        <mxCell id="cicd" value="GitHub Actions CI/CD (security gates)&#10;&#10;1. Semgrep (SAST)    2. npm audit (SCA)&#10;3. Gitleaks (secrets)    4. Trivy (container — HARD GATE)&#10;&#10;Secrets via GitHub Actions encrypted secrets" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F3E8FD;strokeColor=#7B3FA0;fontColor=#5B2C82;fontSize=12;align=center;spacingTop=6;" vertex="1" parent="1">
+          <mxGeometry x="320" y="370" width="500" height="120" as="geometry" />
+        </mxCell>
+
+        <mxCell id="e_user_web" value="HTTP :4000" style="endArrow=classic;html=1;strokeColor=#33475B;fontColor=#33475B;fontSize=11;" edge="1" parent="1" source="user" target="web">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="e_web_mongo" value="MongoDB wire :27017" style="endArrow=classic;html=1;strokeColor=#33475B;fontColor=#33475B;fontSize=11;" edge="1" parent="1" source="web" target="mongo">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="e_cicd_web" value="build &amp; scan image" style="endArrow=classic;html=1;dashed=1;dashPattern=4 3;strokeColor=#7B3FA0;fontColor=#5B2C82;fontSize=11;" edge="1" parent="1" source="cicd" target="web">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
