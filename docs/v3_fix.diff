@@ -1,0 +1,85 @@
+diff --git a/server.js b/server.js
+index d6bb500..1117025 100644
+--- a/server.js
++++ b/server.js
+@@ -7,7 +7,7 @@ const session = require("express-session");
+ // const csrf = require('csurf');
+ const consolidate = require("consolidate"); // Templating library adapter for Express
+ const swig = require("swig");
+-// const helmet = require("helmet");
++const helmet = require("helmet");
+ const MongoClient = require("mongodb").MongoClient; // Driver for connecting to MongoDB
+ const http = require("http");
+ const marked = require("marked");
+@@ -67,6 +67,24 @@ MongoClient.connect(db, (err, db) => {
+     // Adding/ remove HTTP Headers for security
+     app.use(favicon(__dirname + "/app/assets/favicon.ico"));
+ 
++    // Fix for A3 - XSS (defence in depth): Content Security Policy via helmet.
++    // A CSP tells the browser which sources of script are allowed, so an injected
++    // inline <script> is refused even if output encoding is ever missed. This legacy
++    // app relies on some inline scripts, so we ship the policy in report-only mode:
++    // violations are reported (and visible in the browser console) without breaking
++    // existing functionality, and it can be switched to enforcing mode once inline
++    // scripts are removed.
++    app.use(helmet.contentSecurityPolicy({
++        directives: {
++            defaultSrc: ["'self'"],
++            scriptSrc: ["'self'"],
++            objectSrc: ["'none'"],
++            frameAncestors: ["'none'"],
++            reportUri: "/csp-violation-report"
++        },
++        reportOnly: true
++    }));
++
+     // Express middleware to populate "req.body" so we can access POST variables
+     app.use(bodyParser.json());
+     app.use(bodyParser.urlencoded({
+@@ -82,22 +100,15 @@ MongoClient.connect(db, (err, db) => {
+         secret: cookieSecret,
+         // Both mandatory in Express v4
+         saveUninitialized: true,
+-        resave: true
+-        /*
+-        // Fix for A5 - Security MisConfig
+-        // Use generic cookie name
+-        key: "sessionId",
+-        */
+-
+-        /*
+-        // Fix for A3 - XSS
+-        // TODO: Add "maxAge"
++        resave: true,
++
++        // Fix for A3 - XSS (defence in depth): mark the session cookie HttpOnly so it
++        // cannot be read by client-side JavaScript (document.cookie). This directly
++        // blunts the impact of any XSS - a stolen session cookie is the usual goal.
+         cookie: {
+             httpOnly: true
+-            // Remember to start an HTTPS server to get this working
+-            // secure: true
++            // secure: true  // enable once served over HTTPS
+         }
+-        */
+ 
+     }));
+ 
+@@ -133,12 +144,11 @@ MongoClient.connect(db, (err, db) => {
+ 
+     // Template system setup
+     swig.setDefaults({
+-        // Autoescape disabled
+-        autoescape: false
+-        /*
+-        // Fix for A3 - XSS, enable auto escaping
+-        autoescape: true // default value
+-        */
++        // Fix for A3 - XSS: enable Swig contextual output auto-escaping.
++        // With autoescape on, every {{ }} placeholder is HTML-escaped at render time,
++        // so stored user input (e.g. a profile field) is shown as inert text instead
++        // of being executed as HTML/JavaScript. This is the primary fix for stored XSS.
++        autoescape: true
+     });
+ 
+     // Insecure HTTP connection

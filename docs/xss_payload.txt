@@ -1,0 +1,12 @@
+Stored XSS (V3) test payload for NodeGoat profile — First Name field.
+
+Paste this exact string into the "First Name" field on http://localhost:4000/profile,
+set Bank Routing # to  123456#  (so the form passes validation and saves),
+then click Submit and reload the page. An alert box saying "XSS-by-Raj" will fire.
+
+PAYLOAD 
+"><script>alert('XSS-by-THAHANI')</script>
+
+This is a harmless proof-of-concept (it only shows an alert). It demonstrates that
+user input is stored and rendered without output encoding, allowing arbitrary
+JavaScript to run in another user's browser (session theft, etc.).
