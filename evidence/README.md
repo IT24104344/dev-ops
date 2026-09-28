@@ -36,3 +36,26 @@ Three layers, all in `server.js` (see `docs/v3_fix.diff`):
 The identical payload now renders as inert, HTML-escaped text — no `alert` fires.
 
 ![V3 blocked after fix](E07c_v3_blocked.png)
+
+## DAST — OWASP ZAP baseline scan (extra credit)
+
+A dynamic scan of the **running** application (unlike the static SAST gates), using
+OWASP ZAP's baseline (passive) scan against `http://localhost:4000`.
+
+- **Report:** `evidence/zap_report.html` (open in a browser) and `evidence/zap_report.md`.
+- **CI workflow:** `.github/workflows/zap-dast.yml` — starts the app with Docker Compose
+  and runs the ZAP baseline scan on every push to `main` / PR.
+- **Result summary:** 1 High, 5 Medium, 8 Low, 9 Informational (49 passive checks passed).
+  ZAP flags runtime issues such as missing security headers, source-code disclosure and
+  session-handling — complementing the static analysis done by the other members.
+
+How it was run locally:
+
+```bash
+docker compose up -d --build
+docker run --rm --add-host=host.docker.internal:host-gateway \
+  -v "$PWD/evidence:/zap/wrk:rw" zaproxy/zap-stable \
+  zap-baseline.py -t http://host.docker.internal:4000 -r zap_report.html -w zap_report.md
+```
+
+![ZAP scan summary](E19_zap_summary.png)

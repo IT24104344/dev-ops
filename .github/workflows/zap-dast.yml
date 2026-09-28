@@ -1,0 +1,40 @@
+name: DAST - OWASP ZAP Baseline
+
+# Dynamic Application Security Testing (extra credit, Section 2.4).
+# Unlike the SAST/SCA/secrets/container gates that inspect code and images,
+# this scans the RUNNING application over HTTP for issues only visible at runtime
+# (missing security headers, information disclosure, session handling, etc.).
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ main ]
+  pull_request:
+
+jobs:
+  zap-baseline:
+    name: ZAP baseline scan
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Start the application with Docker Compose
+        run: |
+          docker compose up -d --build
+          echo "Waiting for the app to answer on :4000 ..."
+          timeout 180 bash -c 'until curl -sf http://localhost:4000/login >/dev/null; do sleep 3; done'
+          echo "App is up."
+
+      - name: OWASP ZAP baseline scan
+        uses: zaproxy/action-baseline@v0.12.0
+        with:
+          target: http://localhost:4000
+          # Baseline (passive) scan finds many low-risk warnings on this legacy app,
+          # so we don't fail the build on it; the report is the deliverable.
+          fail_action: false
+          allow_issue_writing: false
+
+      - name: Stop the application
+        if: always()
+        run: docker compose down
