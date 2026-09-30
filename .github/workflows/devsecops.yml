@@ -9,6 +9,7 @@ on:
 jobs:
   build-and-test:
     runs-on: ubuntu-latest
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -22,18 +23,40 @@ jobs:
         run: npm install
 
       - name: Run tests
-        run: npm test || true
+        run: npm test
 
-      - name: SCA - npm audit (production only)
-        run: npm audit --omit=dev --audit-level=high
+      # -------------------------
+      # Gate 1 - SAST
+      # -------------------------
+      - name: SAST - Semgrep
+        uses: semgrep/semgrep-action@v1
+        with:
+          config: p/javascript
+          generateSarif: true
 
+      # -------------------------
+      # Gate 2 - Dependency Scan
+      # -------------------------
+      - name: SCA - npm audit
+        run: npm audit --audit-level=high
+
+      # -------------------------
+      # Gate 3 - Secrets Scan
+      # -------------------------
       - name: Secrets Scan - Gitleaks
         uses: gitleaks/gitleaks-action@v2
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      # -------------------------
+      # Build Docker Image
+      # -------------------------
       - name: Build Docker image
         run: docker build -t nodegoat-app .
 
+      # -------------------------
+      # Gate 4 - Container Scan
+      # -------------------------
       - name: Container Scan - Trivy
         uses: aquasecurity/trivy-action@master
         with:
