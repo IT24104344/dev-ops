@@ -1,0 +1,167 @@
+"use strict";
+
+const express = require("express");
+const favicon = require("serve-favicon");
+const bodyParser = require("body-parser");
+const session = require("express-session");
+// const csrf = require('csurf');
+const consolidate = require("consolidate"); // Templating library adapter for Express
+const swig = require("swig");
+const helmet = require("helmet");
+const MongoClient = require("mongodb").MongoClient; // Driver for connecting to MongoDB
+const http = require("http");
+const marked = require("marked");
+//const nosniff = require('dont-sniff-mimetype');
+const app = express(); // Web framework to handle routing requests
+const routes = require("./app/routes");
+const { port, db, cookieSecret } = require("./config/config"); // Application config properties
+/*
+// Fix for A6-Sensitive Data Exposure
+// Load keys for establishing secure HTTPS connection
+const fs = require("fs");
+const https = require("https");
+const path = require("path");
+const httpsOptions = {
+    key: fs.readFileSync(path.resolve(__dirname, "./artifacts/cert/server.key")),
+    cert: fs.readFileSync(path.resolve(__dirname, "./artifacts/cert/server.crt"))
+};
+*/
+
+MongoClient.connect(db, (err, db) => {
+    if (err) {
+        console.log("Error: DB: connect");
+        console.log(err);
+        process.exit(1);
+    }
+    console.log(`Connected to the database`);
+
+    /*
+    // Fix for A5 - Security MisConfig
+    // TODO: Review the rest of helmet options, like "xssFilter"
+    // Remove default x-powered-by response header
+    app.disable("x-powered-by");
+
+    // Prevent opening page in frame or iframe to protect from clickjacking
+    app.use(helmet.frameguard()); //xframe deprecated
+
+    // Prevents browser from caching and storing page
+    app.use(helmet.noCache());
+
+    // Allow loading resources only from white-listed domains
+    app.use(helmet.contentSecurityPolicy()); //csp deprecated
+
+    // Allow communication only on HTTPS
+    app.use(helmet.hsts());
+
+    // TODO: Add another vuln: https://github.com/helmetjs/helmet/issues/26
+    // Enable XSS filter in IE (On by default)
+    // app.use(helmet.iexss());
+    // Now it should be used in hit way, but the README alerts that could be
+    // dangerous, like specified in the issue.
+    // app.use(helmet.xssFilter({ setOnOldIE: true }));
+
+    // Forces browser to only use the Content-Type set in the response header instead of sniffing or guessing it
+    app.use(nosniff());
+    */
+
+    // Adding/ remove HTTP Headers for security
+    app.use(favicon(__dirname + "/app/assets/favicon.ico"));
+
+    // Fix for A3 - XSS (defence in depth): Content Security Policy via helmet.
+    // A CSP tells the browser which sources of script are allowed, so an injected
+    // inline <script> is refused even if output encoding is ever missed. This legacy
+    // app relies on some inline scripts, so we ship the policy in report-only mode:
+    // violations are reported (and visible in the browser console) without breaking
+    // existing functionality, and it can be switched to enforcing mode once inline
+    // scripts are removed.
+    app.use(helmet.contentSecurityPolicy({
+        directives: {
+            defaultSrc: ["'self'"],
+            scriptSrc: ["'self'"],
+            objectSrc: ["'none'"],
+            frameAncestors: ["'none'"],
+            reportUri: "/csp-violation-report"
+        },
+        reportOnly: true
+    }));
+
+    // Express middleware to populate "req.body" so we can access POST variables
+    app.use(bodyParser.json());
+    app.use(bodyParser.urlencoded({
+        // Mandatory in Express v4
+        extended: false
+    }));
+
+    // Enable session management using express middleware
+    app.use(session({
+        // genid: (req) => {
+        //    return genuuid() // use UUIDs for session IDs
+        //},
+        secret: cookieSecret,
+        // Both mandatory in Express v4
+        saveUninitialized: true,
+        resave: true,
+
+        // Fix for A3 - XSS (defence in depth): mark the session cookie HttpOnly so it
+        // cannot be read by client-side JavaScript (document.cookie). This directly
+        // blunts the impact of any XSS - a stolen session cookie is the usual goal.
+        cookie: {
+            httpOnly: true
+            // secure: true  // enable once served over HTTPS
+        }
+
+    }));
+
+    /*
+    // Fix for A8 - CSRF
+    // Enable Express csrf protection
+    app.use(csrf());
+    // Make csrf token available in templates
+    app.use((req, res, next) => {
+        res.locals.csrftoken = req.csrfToken();
+        next();
+    });
+    */
+
+    // Register templating engine
+    app.engine(".html", consolidate.swig);
+    app.set("view engine", "html");
+    app.set("views", `${__dirname}/app/views`);
+    // Fix for A5 - Security MisConfig
+    // TODO: make sure assets are declared before app.use(session())
+    app.use(express.static(`${__dirname}/app/assets`));
+
+
+    // Initializing marked library
+    // Fix for A9 - Insecure Dependencies
+    marked.setOptions({
+        sanitize: true
+    });
+    app.locals.marked = marked;
+
+    // Application routes
+    routes(app, db);
+
+    // Template system setup
+    swig.setDefaults({
+        // Fix for A3 - XSS: enable Swig contextual output auto-escaping.
+        // With autoescape on, every {{ }} placeholder is HTML-escaped at render time,
+        // so stored user input (e.g. a profile field) is shown as inert text instead
+        // of being executed as HTML/JavaScript. This is the primary fix for stored XSS.
+        autoescape: true
+    });
+
+    // Insecure HTTP connection
+    http.createServer(app).listen(port, () => {
+        console.log(`Express http server listening on port ${port}`);
+    });
+
+    /*
+    // Fix for A6-Sensitive Data Exposure
+    // Use secure HTTPS protocol
+    https.createServer(httpsOptions, app).listen(port, () => {
+        console.log(`Express http server listening on port ${port}`);
+    });
+    */
+
+});
