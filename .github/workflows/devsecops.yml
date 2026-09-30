@@ -32,7 +32,6 @@ jobs:
         uses: semgrep/semgrep-action@v1
         with:
           config: p/javascript
-          generateSarif: true
 
       # -------------------------
       # Gate 2 - Dependency Scan
