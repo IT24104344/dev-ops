@@ -1,0 +1,4 @@
+Policy: ERROR findings block; WARNING and INFO findings remain for review.
+Semgrep 1.177.0; files 75; findings 18; ERROR findings 0; parsing/scan warnings 10.
+Coverage warnings are permitted by this local policy and must remain documented.
+PASS: no ERROR findings. Exit 0; this is not a claim of complete security.

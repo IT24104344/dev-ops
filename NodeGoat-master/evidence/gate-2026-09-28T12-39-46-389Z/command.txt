@@ -1,0 +1,1 @@
+semgrep scan --config /src/docs/evidence/semgrep-rules --metrics off --disable-version-check --verbose --text --json-output /evidence/scan.json --exclude docs --exclude node_modules --exclude .git .
