@@ -1,0 +1,1 @@
+semgrep scan --config /src/evidence/v1-baseline/rules --metrics off --disable-version-check --verbose --text --json-output /results/sast-after.json --exclude docs --exclude evidence --exclude node_modules --exclude .git .

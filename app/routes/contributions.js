@@ -27,18 +27,23 @@ function ContributionsHandler(db) {
 
     this.handleContributionsUpdate = (req, res, next) => {
 
-        /*jslint evil: true */
-        // Insecure use of eval() to parse inputs
-        const preTax = eval(req.body.preTax);
-        const afterTax = eval(req.body.afterTax);
-        const roth = eval(req.body.roth);
+        // Parse contribution percentages as data, never as JavaScript.
+        const parsePercentage = value => {
+            if (
+                typeof value !== "string" ||
+                value.trim() !== value ||
+                !/^\d+(?:\.\d+)?$/.test(value)
+            ) {
+                return NaN;
+            }
 
-        /*
-        //Fix for A1 -1 SSJS Injection attacks - uses alternate method to eval
-        const preTax = parseInt(req.body.preTax);
-        const afterTax = parseInt(req.body.afterTax);
-        const roth = parseInt(req.body.roth);
-        */
+            const percentage = Number(value);
+            return Number.isFinite(percentage) ? percentage : NaN;
+        };
+
+        const preTax = parsePercentage(req.body.preTax);
+        const afterTax = parsePercentage(req.body.afterTax);
+        const roth = parsePercentage(req.body.roth);
         const {
             userId
         } = req.session;
